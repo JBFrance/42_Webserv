@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete File</title>
+    <script>
+        function deleteFile(fileName) {
+            fetch('/delete-file.html', {
+                            method: 'DELETE',
+                            body: fileName,
+                            headers: {
+                                'Content-Type': 'text/plain', 
+                                'File-To-Delete': fileName,
+                            }
+                        })
+            .then(response => {
+                if (response.status === 412)
+                    alert('File does not exist');
+                else if (response.status === 200)
+                    alert("File '" + fileName + "'' successfully deleted!")
+            })
+            .catch(error => {
+                            console.error('Error uploading file:\n', error.message);     
+            });
+
+        
+
+            console.log("Here")
+        }
+
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const form = document.querySelector("form");
+            form.addEventListener("submit", function(event) {
+                event.preventDefault();
+                const formData = new FormData(form);
+                const fileName = formData.get("fileToDelete")
+                if (!fileName.length)
+                    alert("File name can't be empty!");
+                else (deleteFile(fileName))
+                    console.log("Attempting to delete " + fileName);
+            });
+        });
+         
+            
+    </script>
+</head>
+<body>
+    <form method="POST" action="/" name="form">
+        <h2>
+            Enter Name of File to Delete:
+        </h2>
+        <input type="text" id="fileToDelete" name="fileToDelete">
+        <input type="submit"  value="Delete" style="height:50px; width:50px">
+    
+    </form>
+    
+</body>
+</html>
