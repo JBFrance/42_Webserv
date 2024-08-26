@@ -64,23 +64,23 @@ void    Request::getFileName() {
 }
 
 // fix uploadLocation value retrieval
-int    Request::uploadLocationMatch() {
-    if (this->listeningserver->uploadLocation == this->headers["Path"])
-        return 1;
-    return 0;
-}
+// int    Request::uploadLocationMatch() {
+//     if (this->listeningserver->uploadLocation == this->headers["Path"])
+//         return 1;
+//     return 0;
+// }
 
-int    Request::deleteLocationMatch() {
-    if (this->listeningserver->deleteLocation == this->headers["Path"])
-        return 1;
-    return 0;
-}
+// int    Request::deleteLocationMatch() {
+//     if (this->listeningserver->deleteLocation == this->headers["Path"])
+//         return 1;
+//     return 0;
+// }
 
 // handle error maybe?
 void    Request::handleDelete() {
     if (deleteLocationMatch()) {
         try {
-            std::string filePath = this->listeningserver->_root + this->listeningserver->_uploadDir + "/" + fileToDeleteName;
+            // std::string filePath = this->listeningserver->_root + this->listeningserver->_uploadDir + "/" + fileToDeleteName;
        
             FILE* fileCheck = std::fopen( filePath.c_str(), "r");
             if (fileCheck) {
