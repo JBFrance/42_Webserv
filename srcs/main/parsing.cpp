@@ -76,7 +76,8 @@ unsigned long parseClientBodyMaxSize(const std::string& line)
     }
 }
 
-void parseLocationBlock(std::istringstream& stream, Location& location) {
+void parseLocationBlock(std::istringstream& stream, Location& location) 
+{
     std::string line;
     while (std::getline(stream, line)) 
     {
@@ -140,6 +141,7 @@ void parseServerBlock(std::istringstream& stream, Server& server)
         {
             std::istringstream indexStream(trim(line.substr(line.find(' ') + 1)));
             std::string index;
+            server._index.clear();
             while (indexStream >> index)
                 server._index += index + " ";
             if (!server._index.empty())
@@ -159,6 +161,7 @@ void parseServerBlock(std::istringstream& stream, Server& server)
         {
             std::istringstream methodsStream(trim(line.substr(line.find(' ') + 1)));
             std::string method;
+            server._allowedMethods.clear();
             while (methodsStream >> method)
                 server._allowedMethods.push_back(method);
         } 
@@ -166,17 +169,17 @@ void parseServerBlock(std::istringstream& stream, Server& server)
         {
             std::istringstream cgiStream(trim(line.substr(line.find(' ') + 1)));
             std::string key, value;
+            server._cgi.clear();
             while (cgiStream >> key >> value)
                 server._cgi[key] = value;
         } 
         else if (line.find("return") == 0)
             server._return = trim(line.substr(line.find(' ') + 1));
-        else if (line.find("location") == 0) 
-        {
+        else if (line.find("location") == 0) {
             std::string locationPath = trim(line.substr(line.find(' ') + 1));
             Location location;
             parseLocationBlock(stream, location);
-            server._location[locationPath] = location;
+            server._location.push_back(location); // Add to vector instead of map
         }
     }
 }
@@ -212,6 +215,7 @@ void parseConfigFile(const std::string& filename, std::vector<Server>& servers)
                 inServerBlock = false;
                 std::istringstream blockStream(blockContent);
                 parseServerBlock(blockStream, server);
+                std::cout << "abc" << std::endl;
                 server = cleanData(server);
                 servers.push_back(server);
                 server = Server();

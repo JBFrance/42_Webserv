@@ -41,10 +41,10 @@ void printServerDetails(const Server& server)
 
     std::cout << "  Return: " << "[" << server._return << "]" << std::endl;
 
-    std::cout << "  Locations:" << std::endl;
-    for (const auto& [path, location] : server._location) 
-    {
-        std::cout << "  Path: " << "[" << path << "]" << std::endl;
-        printLocationDetails(location);
-    }
+    // std::cout << "  Locations:" << std::endl;
+    // for (const auto& [path, location] : server._location) 
+    // {
+    //     std::cout << "  Path: " << "[" << path << "]" << std::endl;
+    //     printLocationDetails(location);
+    // }
 }

@@ -1,7 +1,18 @@
 #include "Server.hpp"
 #include "Location.hpp"
 
-std::string trimm(const std::string& str) 
+int countWords(const std::string& str) 
+{
+    std::istringstream iss(str);
+    std::string word;
+    int count = 0;
+
+    while (iss >> word) 
+        count++;
+    return count;
+}
+
+std::string trimm(const std::string& str) //wip
 {
     size_t start = 0;
     size_t end = str.size();
@@ -14,24 +25,37 @@ std::string trimm(const std::string& str)
     return (start < end) ? str.substr(start, end - start) : "";
 }
 
-std::string extractString(const std::string& data) 
+std::string getSecondWord(const std::string& str) 
 {
-    size_t pos = data.find_first_not_of(" \t");
+    std::istringstream iss(str);
+    std::string word;
+    std::string firstWord;
+    std::string secondWord;
 
-    if (pos == std::string::npos) 
+    // Extract words from the stream
+    if (iss >> firstWord && iss >> secondWord) 
+        return secondWord;
+    else 
         return "";
+}
 
-    size_t endPos = data.find_first_of(" \t", pos);
-
-    if (endPos == std::string::npos)
-        return trimm(data.substr(pos));
-
-    return trimm(data.substr(pos, endPos - pos));
+Location cleanDataLocation(Location location)
+{
+    std::cout << "despues: " << location.redirect << std::endl;
+    location.redirect = getSecondWord(location.redirect);
+    std::cout << "antes: " << location.redirect << std::endl;
+    return location;
 }
 
 Server cleanData(Server server)
 {
-    server._serverName = extractString(server._serverName);
-    std::cout << "1" << server._serverName << std::endl;
+    //put word_count and error handling here
+    server._serverName = getSecondWord(server._serverName);
+    server._root = getSecondWord(server._root);
+    //server._index = getSecondWord(server._index);
+    std::map<std::string, Location>::iterator it;
+    for (std::size_t i = 0; i < server._location.size(); ++i) 
+        server._location[i] = cleanDataLocation(server._location[i]);
+    std::cout << "2: " << server._clientMaxBodySize << std::endl;
     return server;
 }

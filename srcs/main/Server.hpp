@@ -10,6 +10,7 @@
 # include <cstdlib>
 # include <algorithm>
 # include <unistd.h>
+#include <sstream>
 # include "Location.hpp"
 # include "SimpleServer.hpp"
 
@@ -21,16 +22,16 @@ struct Server
     SimpleServer* serverptr;
 
     int port;
-    std::string ipAddress;
-    std::string permitUploadStr;
-    bool        permitUpload;
+    std::string         ipAddress;
+    std::string         permitUploadStr;
+    bool                permitUpload;
 
     std::map<t_str, t_str> statusCodes;
 
    
-    std::string _serverName; //this was vector, i changed to string...
+    std::string _serverName;
     std::multimap<t_str, t_str> _listen;
-    std::map<t_str, Location> _location; 
+    std::vector<Location> _location; //changed from map to vector
     std::string _root;
     std::string _index; //string
     std::map<int, t_str> _errorPage;
@@ -39,6 +40,13 @@ struct Server
     std::map<std::string,std::string> _cgi; //eg 'sh' : '/bin/bash'
     std::string _return; 
 };
+
+void parseConfigFile(const std::string& filename, std::vector<Server>& servers);
+void parseServerBlock(std::istringstream& stream, Server& server);
+void parseLocationBlock(std::istringstream& stream, Location& location);
+unsigned long parseClientBodyMaxSize(const std::string& line);
+unsigned long safeStoul(const std::string& str);
+void printServerDetails(const Server& server);
 
 Server cleanData(Server server);
 
