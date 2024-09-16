@@ -1,1 +1,1 @@
-uname -a | wc -c
+whoami

@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-
 static int	ft_splitstrcpy(char **split, char const *s, int slen, int i)
 {
 	int	di;

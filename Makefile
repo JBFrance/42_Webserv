@@ -1,7 +1,7 @@
 # Name of the executable
 NAME     = webserv
 GCC      = c++
-CFLAGS   = -Wall -Wextra -Werror -std=c++11 -g -fsanitize=address -fsanitize=undefined
+CPPFLAGS   = -Wall -Wextra -Werror -std=c++11 -g -fsanitize=address -fsanitize=undefined
 RM       = rm -rf
 LIBS     = -I./includes/ 
 
@@ -31,14 +31,14 @@ pre-build:
 
 $(NAME): Makefile $(OBJS)
 	@printf "$(YELLOW) Creating your webserver... $(RESET)\n"
-	@$(GCC) -o $(NAME) $(OBJS) -g $(CFLAGS) $(LIBS)  && \
+	@$(GCC) -o $(NAME) $(OBJS) -g $(CPPFLAGS) $(LIBS)  && \
 	printf "$(GREEN) Compiled successfully...\n Launch with $(BLUE)./webserv [Path To Config File] $(RESET)\n" || \
 	printf "$(RED) Compilation failed... $(RESET)\n"
 
 
 $(OBJ)/%.o: $(SRC)/%.cpp
 	@mkdir -p $(OBJ) $(OBJ_DIR)
-	@$(GCC) $(CFLAGS) $(LIBS) -c $< -o $@
+	@$(GCC) $(CPPFLAGS) $(LIBS) -c $< -o $@
 
 clean:
 	@printf "$(RED) Cleaning up... $(RESET)\n"

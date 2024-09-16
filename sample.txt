@@ -1,0 +1,59 @@
+# NOTES FOR USERS
+# Servers sharing the same IP address and port must have unique server names
+# If cgi-bin location is not present, the server will not support CGI
+# All server locations and paths including _location, _root, _redirect, _errorPages
+# 	_index, _cgi must be preceded by '/' and not end with '/'
+#	e.g /home not home/
+# The server has ability to list directories if _permitDirectory is set to on and location index
+# is valid directory. In order to customise content displayed, the server will look for html files
+# in the root directory of server called boiler-plate1.html and boiler-plate2.html
+# If these files are present, a page combined with boiler-plate1.html, directory content and boiler-plate2.html
+# will be displayed. If these files are not present, a default page will be displayed
+
+# The following is a sample configuration file for a web server including the matching
+#  variable names for server and location structs
+# Upon creation of new server or location structs, all string + boolvariables must be 
+# 	initialized to their default values of either empty string "" or false
+server { 	
+	listen					127.0.0.1:8000;
+
+	# Note: root and index are required fields
+	# If someone visits 127.0.0.1:<port>, the server will serve the file at 'index'
+	root					/www/tmp ; 
+	index 					/index.html ;
+
+	error_page 				400			/error_pages/400.html; 
+	error_page 				404			/error_pages/404.html; 
+	error_page 				500			/error_pages/400.html; 
+	
+	allow_methods			GET POST DELETE;
+
+	client_max_body_size	200000;
+
+	# Location struct
+	location /home { 
+		redirect			 /index.html
+		root				/www/tmp;
+		error_page 			400 /400custom.html; 
+		error_page 			404 /404custom.html; 
+		client_max_body_size 100000; 
+		allow_methods		GET POST DELETE; 
+		upload_dir 			/www/tmp; 
+		permit_upload		on; 
+		index 				/home.html; 
+		permit_upload		on;
+		permit_delete		on; 
+		permit_directory	on; 
+	}
+
+	
+	location /cgi-bin { 
+		root				/www/tmp; 
+		error_page 			400 /400custom.html;
+		client_max_body_size 100000; 
+		allow_methods		GET;
+		index 				/cgi-bin;
+		cgi 				sh /bin/bash; 
+		cgi                 py /bin/python;
+	}
+}

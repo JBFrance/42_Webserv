@@ -1,0 +1,133 @@
+# NOTES FOR USERS
+# Servers sharing the same IP address and port must have unique server names
+# If cgi-bin location is not present, the server will not support CGI
+# All server locations and paths including _location, _root, _redirect, _errorPages
+# 	_index, _cgi must be preceded by '/' and not end with '/'
+#	e.g /home not home/
+# The server has ability to list directories if _permitDirectory is set to on and location index
+# is valid directory. In order to customise content displayed, the server will look for html files
+# in the root directory of server called boiler-plate1.html and boiler-plate2.html
+# If these files are present, a page combined with boiler-plate1.html, directory content and boiler-plate2.html
+# will be displayed. If these files are not present, a default page will be displayed
+
+# The following is a sample configuration file for a web server including the matching
+#  variable names for server and location structs
+# Upon creation of new server or location structs, all string + boolvariables must be 
+# 	initialized to their default values of either empty string "" or false
+server { 	
+	server_name				firstServer # _serverName
+	listen					127.0.0.1:8000; # ipAddress & port
+	
+	# Note: root and index are required fields
+	# If someone visits 127.0.0.1:<port>, the server will serve the file at 'index'
+	root					/www/tmp; # _root
+	index 					/home.html; # _index
+
+	error_page 				400			/error_pages/400.html; # _errorPage
+	error_page 				404			/error_pages/404.html; # _errorPage
+	error_page 				500			/error_pages/400.html; # _errorPage
+	
+	allow_methods			GET POST DELETE; # _allowMethods
+
+	client_max_body_size	200000; # _clientMaxBodySize
+
+	# Location struct
+	location /home { # _location eg  "/home"
+		redirect			/index.html # _redirect
+		root				/www/tmp/locationtest;  # _root
+		error_page 			400 /400custom.html; # _errorPage
+		error_page 			404 /404custom.html; # _errorPage
+		client_max_body_size 100000; # _clientMaxBodySize
+		allow_methods		GET POST DELETE; # _allowMethods
+		upload_dir 			/www/tmp/uploads; # _uploadDir
+		permit_upload		on; # _permitUpload
+		index 				/home.html; # _locationIndex
+		permit_upload		on; # _permitUpload
+		permit_delete		on; # _permitDelete
+		permit_directory	on; # _listDirectory
+	}
+
+	# cgi-bin location must be present for CGI to be supported
+	location /cgi-bin { 
+		root				/www/tmpcgi; #	_root
+		error_page 			400 /400custom.html; #	_errorPage
+		client_max_body_size 100000; # _clientMaxBodySize
+		allow_methods		GET; # _allowMethods
+		index 				/cgi-bin; # _locationIndex
+		cgi 				sh /bin/bash; # _cgi
+		cgi                 py /bin/python; # _cgi
+	}
+}
+
+server { 	
+
+	listen					127.0.0.1:8000;
+
+	root					/www/tmp;
+	index 					home.html; 
+
+	error_page 				400 /400.html;
+	error_page 				404	/404.html;
+	
+	allow_methods			GET POST DELETE;
+
+	client_max_body_size	100000;
+
+	location /home {
+		root				/www/tmp/locationtest;
+		error_page 			400 /400.html;
+		error_page 			404 /404.html;
+		client_max_body_size 100000;
+		allow_methods		GET;
+		permit_upload		off;
+		index 				/home.html;
+		permit_delete		off;
+		permit_directory	off;
+	}
+
+	location /uploads {
+		root				/www/tmppey;
+		error_page 			400 /400.html;
+		client_max_body_size 10000000;
+		allow_methods		GET POST;
+		permit_upload		on;
+		index 				/upload.html;
+		permit_upload		on;
+		permit_delete		off;
+	}
+}
+
+server { 	
+
+	server_name				thirdServer;
+	listen					127.0.0.1:8002;
+
+	root					/www/tmp;
+	index 					home.html; 
+
+	error_page 				400 /400.html;
+	error_page 				404	/404.html;
+	
+	allow_methods			GET POST DELETE;
+
+	client_max_body_size	100000;
+
+	location /delete {
+		root				/www/tmp/locationtest;
+		client_max_body_size 100000;
+		allow_methods		GET POST;
+		permit_upload		off;
+		index 				/delete-file.html
+		permit_delete		off;
+		permit_directory	on;
+	}
+
+	location /files {
+		root				/www/tmple;
+		client_max_body_size 10000;
+		allow_methods		GET DELETE;
+		index 				/uploads;
+		permit_upload		on;
+		permit_delete		on;
+	}
+}

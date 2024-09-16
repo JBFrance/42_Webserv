@@ -11,22 +11,20 @@ Request::Request() {
 };
 
 void Request::writeBufferToFile(const std::string& filename, const std::string& decoded) {
-    // if config file has 'uploads' location parsed then we should replace '/uploads/' below with relevant location e.g listeningserver->uploadDir
-    std::ofstream outputFile(this->listeningserver->_root + this->listeningserver->_uploadDir + "/" + filename.c_str()); // Open file for writing
-   
+    std::string uploadDirectory = "." + this->listeningserver->_locationIdentified->_root + this->listeningserver->_locationIdentified->_uploadDir;
+    std::ofstream outputFile((uploadDirectory + "/" + filename).c_str()); 
     if (outputFile.is_open()) {
-        outputFile << decoded << std::endl; // Write buffer contents to file
-        outputFile.close(); // Close the file stream
-        std::cout << "File '" << filename << "' uploaded successfully." << std::endl;
+        outputFile << decoded << std::endl; 
+        outputFile.close();
+        std::cout << GREEN << "File '" << filename << "' uploaded successfully." << RESET << std::endl;
     } else {
         std::cerr << "Unable to open file: " << filename << "\nCheck path to write to exists" << std::endl;
         this->currentClientPtr->clientStatusCode = 500;
     }
-
 }
 
 
-Request::Request(std::vector<Server> servers, std::string buffer, const Server* listeningserver) : servers(servers), buffer(buffer), listeningserver(listeningserver) {
+Request::Request(std::vector<Server> servers, std::string buffer, Server* listeningserver) : servers(servers), buffer(buffer), listeningserver(listeningserver) {
     std::time_t now = std::time(0);
     fileToDeleteName ="";
     char* dt = std::ctime(&now);
@@ -34,16 +32,10 @@ Request::Request(std::vector<Server> servers, std::string buffer, const Server* 
     RESET = "\033[0m";
     GREEN = "\033[32m";
     BLUE = "\033[34m";
- 
     parseHeaders();
-
-    std::cout << GREEN << this->listeningserver->ipAddress << " - - [" << dt << "] \"" <<this->headers["Method"] << " " << this->headers["Path"] <<"\"" << RESET << std::endl;
-
-    
-    (void)servers;
+    if (!this->headers["Method"].empty())
+        std::cout << GREEN << this->listeningserver->ipAddress << " - - [" << dt << "] \"" << this->headers["Method"] << " " << this->headers["Path"] <<"\"" << RESET << std::endl;
 };
-
-
 
 void    Request::getFileName() {
     std::string contentDispositionStr = this->headers["ContentDisposition"];
@@ -63,51 +55,59 @@ void    Request::getFileName() {
 
 }
 
-// fix uploadLocation value retrieval
-// int    Request::uploadLocationMatch() {
-//     if (this->listeningserver->uploadLocation == this->headers["Path"])
-//         return 1;
-//     return 0;
-// }
+bool    Request::deleteConditionsMet() {
+    if (currentClientPtr->listeningserver->_locationIdentified) {
+        Location *tmp = currentClientPtr->listeningserver->_locationIdentified;
+        if (tmp->_permitDelete && !tmp->_uploadDir.empty())
+            return true;
+    }
+    return false;
+}
 
-// int    Request::deleteLocationMatch() {
-//     if (this->listeningserver->deleteLocation == this->headers["Path"])
-//         return 1;
-//     return 0;
-// }
-
-// handle error maybe?
 void    Request::handleDelete() {
-    if (deleteLocationMatch()) {
+    if (currentClientPtr->isMethodAllowed()) {
         try {
-            // std::string filePath = this->listeningserver->_root + this->listeningserver->_uploadDir + "/" + fileToDeleteName;
-       
-            FILE* fileCheck = std::fopen( filePath.c_str(), "r");
-            if (fileCheck) {
-                if (std::remove(filePath.c_str()) == 0)
-                    std::cout << "File '" << fileToDeleteName << " has been successfully deleted" << std::endl;
-                else
-                    throw std::runtime_error("Unable to delete " + fileToDeleteName);
+            if (deleteConditionsMet() &&!fileToDeleteName.empty()) {
+                Location *tmp = currentClientPtr->listeningserver->_locationIdentified;
+                std::string filePath = "." + tmp->_root + tmp ->_uploadDir + "/" + fileToDeleteName;
+                FILE* fileCheck = std::fopen( filePath.c_str(), "r");
+                if (fileCheck) {
+                    if (std::remove(filePath.c_str()) == 0) {
+                        currentClientPtr->clientStatusCode = 200;
+                        std::cout << "File '" << fileToDeleteName << " has been successfully deleted" << std::endl;
+                    }
+                    else {
+                        currentClientPtr->clientStatusCode = 500;
+                        throw std::runtime_error("Unable to delete " + fileToDeleteName);
+                    }
+                }
+                else {
+                    currentClientPtr->clientStatusCode = 412;
+                    throw std::runtime_error("File Doesn't Exist");
+                }
             }
-            else 
-                throw std::runtime_error("File Doesn't Exist");
+            if (!deleteConditionsMet()) {
+                currentClientPtr->clientStatusCode = 500;
+                throw std::runtime_error("Unable to delete due to server settings!");
+            } else if (fileToDeleteName.empty()) {
+                currentClientPtr->clientStatusCode = 500;
+                throw std::runtime_error("No file name found to delete");
+            }
         } catch (const std::runtime_error& e){
                 std::cout << "Exception found: " << e.what() << std::endl;
-                currentClientPtr->clientStatusCode = 412;
         }
     }
-    else
-        currentClientPtr->clientStatusCode = 500;
-        
-    
+    else {
+        currentClientPtr->clientStatusCode = 405;
+    }
 }
 
 void    Request::handleUpload() {
-    // put error handling
-    getFileName();
-
     try {
-      
+        std::cout << "Handling upload" << std::endl;
+        getFileName();
+        if (this->fileName == "nofilenamefound")
+            throw std::runtime_error("Error with filename");
         size_t payloadStart = buffer.find("\r\n\r\n");
         if (payloadStart != std::string::npos) {
             payloadStart += 4;
@@ -115,13 +115,16 @@ void    Request::handleUpload() {
         }
         std::string decoded = base64_decode(this->base64String);
         writeBufferToFile(this->fileName, decoded);
-        std::string emptyBuffer = "";
         decoded.clear();
-        decoded.swap(emptyBuffer);
+        decoded.swap(EMPTYBUFFER);
         base64String.clear();
-        base64String.swap(emptyBuffer);
+        base64String.swap(EMPTYBUFFER);
     } catch (const std::invalid_argument& e) {
         std::cerr << "Error decoding Base64 string: " << e.what() << std::endl;
+        throw std::runtime_error("Error decoding Base64 string");
+    } catch (const std::runtime_error& e){
+        std::cout << "No file name found on file upload attempt: " << e.what() << std::endl;
+        currentClientPtr->clientStatusCode = 500;
     }
 }
 
@@ -129,18 +132,23 @@ void    Request::parseHeaders() {
     char** splitBuffer = ft_split(buffer.c_str(), '\n');
     int i = 0;
 
-    // the i may not be necessary...
     for (; splitBuffer[i]; i++) {
     }
-
     initialiseHeaders(this->headers);
-    // handle errors here
+
     if (splitBuffer[0] != NULL) {
         getMethod(this->headers, splitBuffer, i);
         if (this->headers["Method"] == "DELETE")
             getFileToDelete(this->fileToDeleteName, splitBuffer, i);
         getPath(this->headers, splitBuffer, i);
+        getHost(this->headers, splitBuffer, i);
         getPort(this->headers, splitBuffer, i);
+        if (this->headers["Port"].empty()) {
+            std::stringstream ss;
+            ss << listeningserver->port;
+            this->headers["Port"] = ss.str();
+        }
+        getCookie(this->headers, splitBuffer, i);
         getContentDisposition(this->headers, splitBuffer, i);
     }       
     clearBuffer(splitBuffer, i);
@@ -150,12 +158,10 @@ void    Request::parseHeaders() {
 Request::~Request()
 {
     fileName.clear();
-    fileName.shrink_to_fit();
     base64String.clear();
     servers.clear();
     buffer.clear();
-    std::string emptyBuffer = "";
-    buffer.swap(emptyBuffer);
+    buffer.swap(EMPTYBUFFER);
 
     
 };

@@ -1,29 +1,23 @@
-#include <string>
-#include <vector>
-#include <map>
-#include <stdexcept>
+#include "base64.hpp"
 
-// Base64 character set
 const std::string BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-// Helper function to get the index of a Base64 character
 int base64_char_to_value(char c) {
     if (c >= 'A' && c <= 'Z') return c - 'A';
     if (c >= 'a' && c <= 'z') return c - 'a' + 26;
     if (c >= '0' && c <= '9') return c - '0' + 52;
     if (c == '+') return 62;
     if (c == '/') return 63;
-    return -1; // Invalid character
+    return -1; 
 }
 
-// Function to decode a Base64 encoded string
-    std::string base64_decode(const std::string& encoded) {
+std::string base64_decode(const std::string& encoded) {
     std::string decoded;
     uint64_t val = 0;
     int valb = -8;
     for (std::string::const_iterator it = encoded.begin(); it != encoded.end(); ++it) {
         char c = *it;
-        if (c == '=') break; // Padding character
+        if (c == '=') break;
         int value = base64_char_to_value(c);
         if (value == -1) {
             throw std::invalid_argument("Invalid Base64 character");

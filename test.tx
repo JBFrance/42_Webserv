@@ -1,0 +1,165 @@
+found ==/www/tmpcgi;
+found ==/www/tmppey;
+found ==/www/tmple;
+Server 1:
+  Server Name: firstServer
+  ipAddress: 127.0.0.1:8000;
+  _root: /www/tmp;
+  _index: /home.html;
+  Error Page 400: /error_pages/400.html;
+  Error Page 404: /error_pages/404.html;
+  Error Page 500: /error_pages/400.html;
+  Allow Methods: GET POST
+  Client Max Body Size: 200000
+  Allowed Methods Vector: 
+[]6[]
+  Location 1:
+    Path: 
+    _redirect: /index.html
+    _root: 
+    Client Max Body Size: 0
+    Allowed Methods Vector: 
+    Upload Dir: 
+    Permit Upload: off
+    Permit Delete: off
+    Permit Directory: off
+  Location 2:
+    Path: 
+    _redirect: 
+    _root: 
+    Error Page 400: /400custom.html;
+    Error Page 404: /404custom.html;
+    Client Max Body Size: 100000
+    Allowed Methods Vector: l.[GET] l.[POST] 
+    Upload Dir: /www/tmp/uploads;
+    Permit Upload: on
+    Permit Delete: off
+    Permit Directory: off
+  Location 3:
+    Path: 
+    _redirect: 
+    _root: 
+    Client Max Body Size: 0
+    Allowed Methods Vector: 
+    Upload Dir: 
+    Permit Upload: on
+    Permit Delete: on
+    Permit Directory: on
+  Location 4:
+    Path: 
+    _redirect: 
+    _root: 
+    Client Max Body Size: 0
+    Allowed Methods Vector: 
+    Upload Dir: 
+    Permit Upload: off
+    Permit Delete: off
+    Permit Directory: off
+  Location 5:
+    Path: 
+    _redirect: 
+    _root: /www/tmpcgi;
+    Error Page 400: /400custom.html;
+    Client Max Body Size: 100000
+    Allowed Methods Vector: 
+    Upload Dir: 
+    Permit Upload: off
+    Permit Delete: off
+    Permit Directory: off
+  Location 6:
+    Path: 
+    _redirect: 
+    _root: 
+    Client Max Body Size: 0
+    Allowed Methods Vector: 
+    CGI py: /bin/python;
+    CGI sh: /bin/bash;
+    Upload Dir: 
+    Permit Upload: off
+    Permit Delete: off
+    Permit Directory: off
+Server 2:
+  Server Name: 
+  ipAddress: 127.0.0.1:8000;
+  _root: /www/tmp;
+  _index: home.html;
+  Error Page 400: /400.html;
+  Error Page 404: /404.html;
+  Allow Methods: GET POST
+  Client Max Body Size: 100000
+  Allowed Methods Vector: 
+[]3[]
+  Location 1:
+    Path: 
+    _redirect: 
+    _root: 
+    Client Max Body Size: 0
+    Allowed Methods Vector: 
+    Upload Dir: 
+    Permit Upload: off
+    Permit Delete: off
+    Permit Directory: off
+  Location 2:
+    Path: 
+    _redirect: 
+    _root: 
+    Error Page 400: /400.html;
+    Error Page 404: /404.html;
+    Client Max Body Size: 100000
+    Allowed Methods Vector: 
+    Upload Dir: 
+    Permit Upload: on
+    Permit Delete: on
+    Permit Directory: on
+  Location 3:
+    Path: 
+    _redirect: 
+    _root: /www/tmppey;
+    Error Page 400: /400.html;
+    Client Max Body Size: 10000000
+    Allowed Methods Vector: l.[GET] 
+    Upload Dir: 
+    Permit Upload: on
+    Permit Delete: on
+    Permit Directory: off
+Server 3:
+  Server Name: thirdServer;
+  ipAddress: 127.0.0.1:8002;
+  _root: /www/tmp;
+  _index: home.html;
+  Error Page 400: /400.html;
+  Error Page 404: /404.html;
+  Allow Methods: GET POST
+  Client Max Body Size: 100000
+  Allowed Methods Vector: 
+[]3[]
+  Location 1:
+    Path: 
+    _redirect: 
+    _root: 
+    Client Max Body Size: 0
+    Allowed Methods Vector: 
+    Upload Dir: 
+    Permit Upload: off
+    Permit Delete: off
+    Permit Directory: off
+  Location 2:
+    Path: 
+    _redirect: 
+    _root: 
+    Client Max Body Size: 100000
+    Allowed Methods Vector: l.[GET] 
+    Upload Dir: 
+    Permit Upload: on
+    Permit Delete: on
+    Permit Directory: on
+  Location 3:
+    Path: 
+    _redirect: 
+    _root: /www/tmple;
+    Client Max Body Size: 10000
+    Allowed Methods Vector: l.[GET] 
+    Upload Dir: 
+    Permit Upload: on
+    Permit Delete: on
+    Permit Directory: off

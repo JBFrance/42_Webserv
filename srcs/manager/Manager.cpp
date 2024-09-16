@@ -1,9 +1,7 @@
-
-
 #include "Manager.hpp"
-// #include "../../includes/eventheaders.hpp"
-#include <fcntl.h>
-#include <sstream> 
+
+std::string EMPTYBUFFER = "";
+Manager* Manager::instance = NULL;
 
 Manager::Manager(std::vector<Server>& servers): servers(servers) {
     std::string RESET = "\033[0m";
@@ -13,14 +11,13 @@ Manager::Manager(std::vector<Server>& servers): servers(servers) {
     FD_ZERO(&read_master);
     FD_ZERO(&write_master);
 
-    //added to test
-    // servers[0].serverptr = new SimpleServer(AF_INET, SOCK_STREAM, 0, 8000, "127.0.0.1" , 5);
-    // std::cout << servers[0].serverptr->get_socket()->get_sock() << "-----HERE" << std::endl;
-    //
-
     for (unsigned int i = 0;i < servers.size(); i++) {
         fcntl(servers[i].serverptr->get_socket()->get_sock(), F_SETFL, O_NONBLOCK);
-        std::cout << YELLOW << "Webserver listening on port " << servers[i].port << "..." <<  RESET << std::endl;
+        if (!servers[i]._serverName.empty())
+            std::cout << YELLOW << "Webserver listening on port " << servers[i].port << " with server name '" \
+                << servers[i]._serverName << "'..." <<  RESET << std::endl;
+        else
+            std::cout << YELLOW << "Webserver listening on port " << servers[i].port << "..." <<  RESET << std::endl;
     }
     listen_for_events();
 }
@@ -32,16 +29,6 @@ int Manager::stringToInt(const std::string& str) {
     return result;
 }
 
-int Manager::extract_content_length(const std::string& headers) {
-    const std::string content_length_str = "Content-Length: ";
-    size_t pos = headers.find(content_length_str);
-    if (pos != std::string::npos) {
-        size_t end_pos = headers.find("\r\n", pos);
-        std::string length_str = headers.substr(pos + content_length_str.length(), end_pos - (pos + content_length_str.length()));
-        return stringToInt(length_str);
-    }
-    return -1;
-}
 
 int Manager::setNonBlocking(int socket) {
     int flags = fcntl(socket, F_GETFL, 0);
@@ -51,44 +38,93 @@ int Manager::setNonBlocking(int socket) {
     return fcntl(socket, F_SETFL, flags | O_NONBLOCK);
 }
 
-
-
 void Manager::addServerSockets(std::vector<Server>& servers, int &maxSocket) {
+    std::vector<int> uniqueSocket;
     for (size_t i = 0; i < servers.size(); i++) {
         fcntl(servers[i].serverptr->get_socket()->get_sock(), F_SETFL, O_NONBLOCK, FD_CLOEXEC);
-        FD_SET(servers[i].serverptr->get_socket()->get_sock(), &read_master);
-        if (servers[i].serverptr->get_socket()->get_sock() > maxSocket)
-            maxSocket = servers[i].serverptr->get_socket()->get_sock();
+        if (!(FD_ISSET(servers[i].serverptr->get_socket()->get_sock(), &read_master)) ) {
+            if (std::find(uniqueSocket.begin(), uniqueSocket.end(), servers[i].serverptr->get_socket()->get_sock()) == uniqueSocket.end()) {
+                uniqueSocket.push_back(servers[i].serverptr->get_socket()->get_sock());
+                FD_SET(servers[i].serverptr->get_socket()->get_sock(), &read_master);
+                if (servers[i].serverptr->get_socket()->get_sock() > maxSocket)
+                    maxSocket = servers[i].serverptr->get_socket()->get_sock();
+            }
+        }
     }
 }
 
 void Manager::addNewSocket(Server &listeningserver, int &maxSocket) {
     struct sockaddr_in address = listeningserver.serverptr->get_socket()->get_address();
     int addrlen = sizeof(address);
-    int newSocket = accept(listeningserver.serverptr->get_socket()->get_sock(), (struct sockaddr *) &address, (socklen_t *)&addrlen);
+    int newSocket = accept(listeningserver.serverptr->get_socket()->get_sock(), (struct sockaddr *) &address, (socklen_t *)&addrlen); 
     if (newSocket == - 1) {
         perror("Error accepting connection");
         return;
     }
+    int optval = 1;
+    setsockopt(newSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
     fcntl(newSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
     FD_SET(newSocket, &read_master);
     if (newSocket > maxSocket)
         maxSocket = newSocket;
-    // Client *newClientSocket = new Client(newSocket, address,  listeningserver, servers);
-        Client *newClientSocket = new Client(newSocket, address,  servers, &listeningserver);
-        //set all values
-     
-     
+
+    Client *newClientSocket = new Client(newSocket, address,  servers, &listeningserver); 
     openClients.push_back(newClientSocket);
 }
 
-void Manager::listen_for_events() {
+void Manager::handle_sigint(int signum) {
+    switch (signum) {
+        case SIGINT:
+        std::cerr << "Received SIGINT (Ctrl+C). Exiting..." << std::endl;
+        std::vector<SimpleServer*> uniqueServer;
+        for (size_t i = 0; i < instance->servers.size(); i++) {
+            if (instance->servers[i].serverptr != NULL) {
+                if (std::find(uniqueServer.begin(), uniqueServer.end(),instance->servers[i].serverptr) == uniqueServer.end()) {
+                    uniqueServer.push_back(instance->servers[i].serverptr);
+                }
+            }
+        }
+        for (size_t i = 0; i < uniqueServer.size(); i++) {
+            close(uniqueServer[i]->get_socket()->get_sock());
+            delete uniqueServer[i];
+        }
+        
+        exit(EXIT_SUCCESS);
+        break;
+    }
+}
+
+void Manager::checkIfUpload(Client &currentClient) {
+   if (!currentClient.listeningserver->_locationIdentified->_location.empty()) {
+        if (currentClient.payloadSize <= currentClient.listeningserver->_locationIdentified->_clientMaxBodySize) {
+            if (currentClient.listeningserver->_locationIdentified->_permitUpload) {
+                try {
+                    currentClient.request->handleUpload();
+                } catch (const std::runtime_error& e) {
+                    std::cerr << "Exception found: " << e.what() << std::endl;
+                    currentClient.clientStatusCode = 400;
+                }
+            }
+            else
+                currentClient.clientStatusCode = 503;
+        }
+        else
+            currentClient.clientStatusCode = 413;
+    }                            
+    else if (currentClient.payloadSize > currentClient.maxContentLength && currentClient.listeningserver->_locationIdentified->_location.empty())
+        currentClient.clientStatusCode = 413;
+}
+
+
+
+void Manager::listen_for_events(){
+    instance = this;
     int maxSocket = 0;
     addServerSockets(servers, maxSocket);
- 
+    std::signal(SIGINT, handle_sigint);
 
     while (maxSocket) {
-   
+        
         this->readSet = read_master;
 		this->writeSet = write_master;
 
@@ -98,17 +134,21 @@ void Manager::listen_for_events() {
             continue;
         }
 
+        std::vector<int> uniqueSocket;
         for (unsigned int i = 0; i < servers.size(); i++) {
             if (FD_ISSET(servers[i].serverptr->get_socket()->get_sock(), &readSet)) {
-                addNewSocket(servers[i], maxSocket);
+                if (std::find(uniqueSocket.begin(), uniqueSocket.end(), servers[i].serverptr->get_socket()->get_sock()) == uniqueSocket.end()) {  
+                    uniqueSocket.push_back(servers[i].serverptr->get_socket()->get_sock());
+                    addNewSocket(servers[i], maxSocket);
+                }
             } 
         }
      
         for (std::vector<Client *>::iterator it = openClients.begin(); it != openClients.end(); ++it) {
-            Client &currentClient = **it; //double derefence otherwise i need to create Client *
+            Client &currentClient = **it;
+            
             int currentSocket = currentClient.socket;
             char buffer[1024];
-        
             memset(buffer, 0, 1024);
 
             if (FD_ISSET(currentSocket, &readSet)) {
@@ -132,17 +172,12 @@ void Manager::listen_for_events() {
                         currentClient.createRequest();
                         currentClient.request->parseHeaders();
                         currentClient.getPayloadLength();
-                        if (currentClient.postDetected) {
-                            // fix uploadLocationMatch and handle error if mismatch
-                            if ((currentClient.payloadSize <= currentClient.maxContentLength) && currentClient.request->uploadLocationMatch()) {
-                                currentClient.request->handleUpload();
-                            }
-                            if (currentClient.payloadSize > currentClient.maxContentLength)
-                                currentClient.clientStatusCode = 413;
-                        }
-                        if (currentClient.request->headers["Method"] == "DELETE")
+                        currentClient.checkListeningServerAllocation();
+                        currentClient.identifyLocationAndAssign();
+                        if (currentClient.request->headers["Method"] == "POST" && currentClient.isMethodAllowed() && currentClient.listeningserver->_locationIdentified)
+                            checkIfUpload(currentClient);
+                        else if (currentClient.request->headers["Method"] == "DELETE")
                             currentClient.request->handleDelete();
-                            // std::cout << "DeleteFound" << std::endl;
                         currentClient.createResponse();
                     } else if (currentClient.payloadSize == -1) {
                         FD_CLR(currentSocket, &read_master);
@@ -150,36 +185,31 @@ void Manager::listen_for_events() {
                         currentClient.createRequest();
                         currentClient.request->parseHeaders();
                         currentClient.createResponse();
-                    }
-                            
+                    }   
                 } else {
                     currentClient.requestBuffer += std::string(buffer, bytesRead);;
                 }
             }
-            if (FD_ISSET(currentSocket, &writeSet)) {
-              
-                // if ((currentClient.payloadSize > currentClient.maxContentLength) || currentClient.clientStatusCode == 500) {
+            if (FD_ISSET(currentSocket, &writeSet)) {                
                 if (currentClient.clientStatusCode != 200) {
                     Server* queriedServer = const_cast<Server*>(currentClient.listeningserver);
                     currentClient.res->deliverErrorPage(currentSocket, currentClient.clientStatusCode, queriedServer );
                     currentClient.clientStatusCode = 200;
                     currentClient.res->writeStamp();
                 }
-                else 
+                else if (currentClient.requestBuffer.length() > 0){
                     currentClient.res->servePage();
-                
+                    currentClient.requestBuffer.clear();
+                    currentClient.requestBuffer.swap(EMPTYBUFFER);
+                }
+                if (close(currentSocket) == -1)
+                    std::cout << "Error closing socket" << std::endl;
                 delete (*it);
                 it = openClients.erase(it);
                 --it;
-                close(currentSocket);
-                
                 FD_CLR(currentSocket, &write_master);
-
             }
         }
-     
-   
-    
     }
 }
 

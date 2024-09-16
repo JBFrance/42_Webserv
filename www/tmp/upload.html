@@ -1,80 +1,58 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Upload Form</title>
-    
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const form = document.querySelector("form");
-            form.addEventListener("submit", function(event) {
-                event.preventDefault(); // Prevent the default form submission
-    
-                const input = document.getElementById("file");
-                const file = input.files[0];
-    
-                if (file) {
-                    console.log('Uploading file:', file.name);
-                    let reader = new FileReader();
-                    reader.onload = function(e) {
-                        const base64File = btoa(e.target.result); // Convert file content to base64
-    
-                        fetch('/upload.html', {
-                            method: 'POST',
-                            body: base64File,
-                            headers: {
-                                'Content-Type': file.type, // Set content type based on file type
-                                'Content-Disposition': `attachment; filename="${file.name}"`,
-                                'random-header': 'value' // Example of additional custom header
-                            }
-                        })
-                        .then(response => {
-                            console.log(response.status);
-                            if (response.status === 413 ) {
-                                alert('File upload unsuccessful!!\nFile size not permitted!');
-                                throw new Error('File size not permitted!');
-                            } 
-                            else if (response.status === 500 ) {
-                                alert('File upload unsuccessful!!\nInternal Server Error!');
-                                throw new Error('File size not permitted!');
-                            } 
-                            else if (!response.ok) {
-                                throw new Error('Error uploading file');
-                            } else if (response.status === 200) {
-                                alert('File uploaded successfully');
-                                window.location.href = 'upload.html ';
-                            }
-                            return response.text();
-                        })
-                        .then(data => {
-                            console.log('File uploaded successfully. Response from server:', data);
-                        })
-                        .catch(error => {
-                            console.error('Error uploading file:\n', error.message);
-                        });
-                    };
-                    reader.onerror = function(e) {
-                        console.error('Error reading file:', e.target.error);
-                    };
-                    reader.readAsBinaryString(file); // Read file as binary string
-                } else {
-                    alert('Please select a file to upload.');
-                }
-            });
-        });
-    </script>
-    
+    <title>42 Webserv</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/stylesheets/styles.css">
+  
 </head>
 <body>
-    <h2>Upload a File</h2>
-    <form  method="POST" enctype="multipart/form-data" action="/upload.html">
-        <label for="file">Select a file:</label><br>
-        <input type="file" id="file" name="file" accept="*/*"><br><br>
-   
-        <input type="submit" value="Upload">
-    </form>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">42Webserv</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/files">List Files</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload">Upload Files</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/del">Delete Files</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/script.sh">Bash Script</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/script2.py">Python Script</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="form-container">
+        <div class="form-content">
+            <form  method="POST" enctype="multipart/form-data" action="/upload">
+                <h2>Select a file to upload:</h2>
+                <br>
+                <input type="file" id="file" name="file" accept="*/*"><br><br>
+                <input type="submit" value="Upload">
+            </form>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/uploader.js"></script>
 </body>
+
 </html>  
 
